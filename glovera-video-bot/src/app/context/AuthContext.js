@@ -54,6 +54,7 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast.error('Failed to login. Please try again.');
       return false;
     }

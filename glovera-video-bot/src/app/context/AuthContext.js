@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import { set } from 'react-hook-form';
 
 const AuthContext = createContext();
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

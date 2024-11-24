@@ -170,7 +170,7 @@ export default function CompleteProfile() {
 
         console.log("Sending request with data:", formattedValues);
 
-        const response = await fetch('http://localhost:8000/updateProfile', {
+        const response = await fetch(`${NEXT_PUBLIC_API_URL}/updateProfile`, {
           method: 'PUT',
           headers: {
             'Accept': 'application/json',
@@ -207,7 +207,7 @@ export default function CompleteProfile() {
           return;
         }
 
-        const response = await fetch('http://localhost:8000/checkProfileCompletion', {
+        const response = await fetch(`${NEXT_PUBLIC_API_URL}/checkProfileCompletion`, {
           method: 'POST',
           headers: {
             'Accept': 'application/json',

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PlusIcon, PencilSquareIcon, TrashIcon, EyeIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Dialog } from '@headlessui/react';
-
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 export default function Students() {
   const [students, setStudents] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,7 +17,7 @@ export default function Students() {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/getAllStudents', {
+      const response = await fetch(`${NEXT_PUBLIC_API_URL}/getAllStudents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' ,
         'Authorization': `Bearer ${localStorage.getItem('adminToken')}`},

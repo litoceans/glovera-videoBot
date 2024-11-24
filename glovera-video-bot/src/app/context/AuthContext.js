@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
 
   const loginUsingDB = async (token) => {
     try {
-      const response = await fetch('http://localhost:8000/loginUsingGoogle', {
+      const response = await fetch(`${NEXT_PUBLIC_API_URL}/loginUsingGoogle`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

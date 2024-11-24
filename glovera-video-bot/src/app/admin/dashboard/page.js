@@ -34,7 +34,7 @@ ChartJS.register(
   ArcElement
 );
 
-
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
 
   const getDashBoardData = async () => {
     try {
-      const response = await fetch('http://localhost:8000/getDashboard', {
+      const response = await fetch(`${NEXT_PUBLIC_API_URL}/getDashboard`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

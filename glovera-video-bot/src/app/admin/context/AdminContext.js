@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 
 const AdminContext = createContext();
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useAdmin() {
   return useContext(AdminContext);
@@ -36,7 +37,7 @@ export function AdminProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:8000/loginAdmin', {
+      const response = await fetch(`${NEXT_PUBLIC_API_URL}/loginAdmin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

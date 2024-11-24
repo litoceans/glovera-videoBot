@@ -96,7 +96,7 @@ export default function Avatar() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/createSession', {
+      const response = await fetch(`${NEXT_PUBLIC_API_URL}/createSession`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',

@@ -1,0 +1,12 @@
+fastapi 
+pydantic 
+uvicorn 
+python-multipart 
+python-jose 
+requests
+pymongo
+pycryptodome
+python-dotenv
+firebase-admin
+pydantic[email]
+groq

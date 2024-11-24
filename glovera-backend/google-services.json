@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "982992612794",
+    "project_id": "phoneauth-34ea1",
+    "storage_bucket": "phoneauth-34ea1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:982992612794:android:2a31ad5e0d05bd6e0cc183",
+        "android_client_info": {
+          "package_name": "com.soul_coder.myShopPhone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "982992612794-2qoqp8ec1030n6d7qfk51pb5iqapqd9s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.soul_coder.myShopPhone",
+            "certificate_hash": "5a9453d74ee85e05690cb81957240d26d6abaa83"
+          }
+        },
+        {
+          "client_id": "982992612794-n0670t1706tdb0uspnii2ufg6pupor9e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkCT93zekOmug05XKQzPk9aCLhyO7cRpo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "982992612794-0va7d82r6hb97up97odbk3fakm81ot9p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -7,6 +7,7 @@ import { useUniversity } from './hooks/useUniversity';
 import UniversityForm from './components/UniversityForm.js';
 import ProgramForm from './components/ProgramForm.js';
 
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 export default function Programs() {
   const [universities, setUniversities] = useState([]);
   const [selectedUniversity, setSelectedUniversity] = useState(null);

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { MicrophoneIcon, SpeakerWaveIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import CharacterList from './CharacterList';
-
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 const requirements = [
   {
     id: 'microphone',

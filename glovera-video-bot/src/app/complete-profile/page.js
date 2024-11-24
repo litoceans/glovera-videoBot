@@ -10,7 +10,7 @@ import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import Select from 'react-select';
 import './styles.css';
-
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 // Data for dropdowns
 const countries = [
   { value: 'US', label: 'United States' },

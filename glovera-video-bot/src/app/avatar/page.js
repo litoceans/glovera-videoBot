@@ -111,10 +111,10 @@ export default function Avatar() {
 
       const data = await response.json();
       if(data.Success){
-        const sessionId = data.Success.sessionId;
+        const sessionId = data.session_id;
         let timeStamp = Date.now();
         localStorage.setItem('sessionId', sessionId);
-        router.push(`/character?characterId=${selectedCharacter.no}&timeStamp=${timeStamp}`);
+        router.push(`/character?characterId=${selectedCharacter.no}&timeStamp=${timeStamp}&sessionId=${sessionId}`);
       }else{
         toast.error(data.Error);
       }
@@ -140,7 +140,7 @@ export default function Avatar() {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Requirements Checklist */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Before We Begin</h2>
+            <h2 className="text-xl font-semibold mb-4">Before We Begin(Click the checkbox)</h2>
             <div className="space-y-4">
               {requirements.map((req) => (
                 <div key={req.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer"

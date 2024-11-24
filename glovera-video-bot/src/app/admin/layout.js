@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import { AdminProvider, useAdmin } from '../context/AdminContext';
+import { AdminProvider, useAdmin } from './context/AdminContext';
 
 function AdminLayoutContent({ children }) {
   const pathname = usePathname();

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAdmin } from '@/app/context/AdminContext';
+import { useAdmin } from '../context/AdminContext';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { MdDashboard, MdPeople, MdSchool, MdChat, MdLogout } from 'react-icons/md';
 

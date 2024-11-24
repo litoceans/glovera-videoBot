@@ -1,5 +1,5 @@
 "use client";
-import { useRouter ,useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import React, { useState, useCallback, useEffect ,useRef, useMemo} from 'react';
 import Image from 'next/image';
 import axios from 'axios';
@@ -85,7 +85,6 @@ const characters = [
 
 const Character = () => {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [isListeningSpeech, setIsListeningSpeech] = useState(false);
     const [audioBlobs, setAudioBlobs] = useState([]);
     const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -99,6 +98,8 @@ const Character = () => {
     const [holdFlag,setHoldFlag] = useState(false);
     const [resTTS, setResTTS] = useState({text: '', blob: null});
     const [sessionId, setSessionId] = useState(null);
+    const speakEngine = useRef("standard");
+    const pollyVoice = useRef("Joey");
 
     function isDifferenceLessThanOneMinute(epochTime1) {
       const oneMinuteInMilliseconds = 20 * 1000;
@@ -109,54 +110,67 @@ const Character = () => {
       return differenceInMilliseconds < oneMinuteInMilliseconds;
     }
 
+      const parseQueryParams = (url) => {
+    const queryString = url.split('?')[1];
+    if (!queryString) return {};
+
+    const params = new URLSearchParams(queryString);
+    const queryParams = {};
+    for (let [key, value] of params.entries()) {
+      queryParams[key] = value;
+    }
+    return queryParams;
+  };
+
     useEffect(()=>{
-      if(searchParams){
-        const query = {};
-        for (const [key, value] of searchParams.entries()) {
-            query[key] = value;
-        }
+    const url = window.location.href;
+    const query = parseQueryParams(url);
+      if(query){
         console.log("query",query);
-        if(query?.characterId && query?.timeStamp){
-          let diffTime = true;
-          // let diffTime = isDifferenceLessThanOneMinute(query.timeStamp)
+        if(query?.characterId && query?.timeStamp && query?.sessionId){
+          // let diffTime = true;
+          setSessionId(query.sessionId);
+        let diffTime = isDifferenceLessThanOneMinute(query.timeStamp)
         if(diffTime){
           let findChar = characters.find((char) => char.no == query.characterId);
           console.log("findChar",findChar);
           if(!findChar){
             console.log("Session Expired Char");
             toast.error("Session Expired");
-            // setTimeout(()=>{
-            //   window.location.href = REDIRECT_URL
-            // },3000);
+            setTimeout(()=>{
+              window.location.href = REDIRECT_URL
+            },3000);
             return;
           }
           userId.current = query.userId;
           storeQuery.current = query;
-          setSessionId(query.sessionId);
           setCharacterSet(findChar.avatar);
           setLoading(true);
+          speakEngine.current = findChar.engine;
+          pollyVoice.current = findChar.voiceCharcter;
         }else{
           console.log("Session Expired Time");
           toast.error("Session Expired");
-          // setTimeout(()=>{
-          //   window.location.href = REDIRECT_URL
-          // },3000);
+          setTimeout(()=>{
+            window.location.href = REDIRECT_URL
+          },3000);
         }
         }else{
           console.log("Session Expired query");
           toast.error("Session Expired");
-          // setTimeout(()=>{
-          //   window.location.href = REDIRECT_URL
-          // },3000);
+          setTimeout(()=>{
+            window.location.href = REDIRECT_URL
+          },3000);
         }
       }
 
-    },[searchParams])
+    },[])
 
 
     async function startVAD() {
         try {
           toast.success("You can start speaking now");
+          textToSpeech("You can start speaking now");
           sessionStarted.current = true;
           chunks.current = speechChunks; // Use the memoized SpeechChunks instance
           chunks.current.start();
@@ -189,7 +203,7 @@ const Character = () => {
           setTimeout(()=>{
             toast.success("Wait Your Session is Starting...");
             startVAD();      
-          },5000)
+          },3000)
         }
       }, [loading]);
 
@@ -197,8 +211,7 @@ const Character = () => {
         try{
           const token = localStorage.getItem('token');
           const userId = localStorage.getItem('userId');
-          const sessionId = localStorage.getItem('sessionId');
-          if(userId == null || userId == undefined || token == null || token == undefined || sessionId == null || sessionId == undefined){
+          if(userId == null || userId == undefined || token == null || token == undefined){
             router.push('/')
             return;
           }
@@ -206,7 +219,7 @@ const Character = () => {
           stopVAD();
           const response = await axios.post(API_URL+'/endSession',
             { "userId":userId,
-              "sessionId":sessionId,
+              "sessionId":storeQuery.current.sessionId,
             },
             {
             headers: {
@@ -220,13 +233,9 @@ const Character = () => {
           );
           console.log("endSessionAPI :",response?.data)
           if(response?.data?.Success){
-            setTimeout(()=>{
               window.location.href = REDIRECT_URL
-            },3000);
           }else{
-            setTimeout(()=>{
               window.location.href = REDIRECT_URL
-            },3000);
           }
         }catch(error){
           console.log(error);
@@ -235,12 +244,22 @@ const Character = () => {
     
     
       }
+
+
+        async function holdSession(holdType){
+          if(holdType == "START"){
+            stopVAD();
+          }else if(holdType=="END"){
+            startVAD();
+          }
+
+          }
     
       async function stopVAD() {
         if (chunks.current) {
           sessionStarted.current = false;
           chunks.current.stop();
-          console.log("VAD stopped");
+          console.log("Vad stopped");
         } else {
           console.log("VAD is not running");
         }
@@ -366,11 +385,6 @@ const Character = () => {
             console.log("data", data.text);
       
             if (response.status === 200) {
-                const newTranscription = {
-                    type: "user",
-                    text: data.text,
-                    dateAndTime: new Date().toLocaleString()
-                };
                 if (data?.text?.length > 0) {
                     if (data?.text !== ' Thank you.' && data?.text !== '') {
                       await synthesizeSpeech(data.text);
@@ -394,8 +408,7 @@ const Character = () => {
           try {
             let userId = localStorage.getItem('userId');
             const token = localStorage.getItem('token');
-            const sessionId = localStorage.getItem('sessionId');
-            if(userId == null || userId == undefined || token == null || token == undefined || sessionId == null || sessionId == undefined){
+            if(userId == null || userId == undefined || token == null || token == undefined){
                 router.push('/')
                 return;
             }
@@ -403,7 +416,7 @@ const Character = () => {
             const response = await axios.post(API_URL+'/chatSession',
               { "userId":userId,
                 "question":text,
-                "sessionId":sessionId,
+                "sessionId":storeQuery.current.sessionId,
             },
               {
                 headers: {
@@ -416,14 +429,14 @@ const Character = () => {
             );
             console.log("LLM :",response.data);
             if(response?.data && response?.data.Success){
-            //   textToSpeech(response.data.Success);
+              textToSpeech(response.data.Success);
 
             }else{
               stopVAD();
-              toast.error(response?.data?.Error);
-              setTimeout(()=>{
-                window.location.href = REDIRECT_URL
-              },3000);
+              // toast.error(response?.data?.Error);
+              // setTimeout(()=>{
+              //   window.location.href = REDIRECT_URL
+              // },3000);
               // alert(response?.data?.Error);
             //   handleAlert({msg:response?.data?.Error,type:"failure"});
             }

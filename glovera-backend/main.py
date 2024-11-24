@@ -22,28 +22,7 @@ dotenv.load_dotenv()
 
 client = Groq()
 
-mainPrompt = """You are EduGuide, an AI-powered video bot for international student counseling. Provide human-like interactions and personalized guidance./n
-Objective:/n
-Assist students in making informed decisions about studying abroad. Offer advice on programs, universities, visa requirements, and cultural adjustments./n
-Key Features:/n
-Human-Like Interaction:/n
-Conversational tone./n
-Show empathy and understanding./n
-Use facial expressions and gestures./n
-Personalized Guidance:/n
-Ask questions to understand student's background and goals./n
-Provide tailored advice./n
-Offer insights on cultural, academic, and financial aspects./n
-Comprehensive Support:/n
-Answer questions on admissions, scholarships, visas, and living arrangements./n
-Provide resources and links./n
-Guide on application tasks./n
-Continuous Learning:/n
-Stay updated with latest trends./n
-Improve based on user feedback./n
-Ethical Considerations:/n
-Ensure accurate and unbiased advice./n
-Respect student privacy."""
+mainPrompt = "You are EduGuide, an AI-powered video bot for international student counseling. Provide human-like interactions and personalized guidance./nYou are an expert in helping international students navigate their educational journey. You are a helpful and friendly bot. You are a helpful and friendly bot. You are a helpful and friendly bot./n Response should be in json format : {response: <response>, confidence: <confidence>}, where confidence is a float between 0 and 1, Don't return response in empty string./n We providing Json context of user and programs to you. Use the context to provide personalized guidance and program based on Interest and recommendations. Here the User Information Context : {USER_CONTEXT} /n Here the Program Information Context : {PROGRAM_CONTEXT} /n"
 
 # Google Token validation URL
 GOOGLE_TOKEN_INFO_URL = "https://oauth2.googleapis.com/tokeninfo"
@@ -71,6 +50,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+coursesArr = []
+
+def get_courses():
+    try:
+        client = pymongo.MongoClient(mongoUrl)
+        db = client["glovera"]
+        collection = db["programs"]
+        courses = collection.find({})
+        coursesArr.append(courses)
+        client.close()
+        return courses
+    except Exception as e:
+        logging.error(f"Error fetching courses: {e}")
+        return []
+
+get_courses()
 
 @app.get("/generateToken")
 async def generate_token(email: EmailStr = Query(...)):
@@ -556,12 +551,15 @@ async def create_session(request: Request):
         client = pymongo.MongoClient(mongoUrl)
         db = client["glovera"]
         userCollection = db["students"]
-        user = userCollection.find_one({"student_id": userId},{"_id": 0,"student_id":1})
+        user = userCollection.find_one({"student_id": userId},{"_id": 0,"student_id":0,"personal_information.phone_number":0,"personal_information.email":0,"profile_picture":0,"profile_completed":0})
         if user is None:
             raise HTTPException(status_code=404, detail="User not found")
         sessionCollection = db["sessions"]
         session_id = "SS" + str(int(time.time()))
-        sysPrompt = mainPrompt
+        copyPrompt = mainPrompt
+        copyPrompt  = copyPrompt.replace("{USER_CONTEXT}",str(user))
+        copyPrompt  = copyPrompt.replace("{PROGRAM_CONTEXT}",str(coursesArr))
+        sysPrompt = copyPrompt
         session_data = {
             "sessionId": session_id,
             "student_id": userId,
@@ -594,6 +592,7 @@ async def chat_session(request: Request):
         if check_jwt is None:
             raise HTTPException(status_code=401, detail="Unauthorized")
         reqData = await request.json()
+        print("reqData :", reqData)
         sessionId = reqData.get("sessionId")
         client = pymongo.MongoClient(mongoUrl)
         db = client["glovera"]
@@ -603,42 +602,28 @@ async def chat_session(request: Request):
             client.close()
             raise HTTPException(status_code=404, detail="Session not found")
         chatHistory = session.get("chatHistory")
-        filtered_chat = [{'role': item['role'], 'content': item['content']} for item in chatHistory]
+        filtered_chat = [{'role': item['role'], 'content': item['content']} for item in chatHistory if item['role'] in ['assistant', 'user']]
+        filtered_chat = filtered_chat if filtered_chat else []
+        print("filtered_chat :", len(filtered_chat))
         question = reqData.get("question")
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": session.get("sysPrompt"),
-                },
-                {
-                    "role": "user",
-                    "content": question,
-                },
-                {
-                    "role": "assistant",
-                    "content": "Here is the Chat History : " + str(filtered_chat),
-                }
-            ],
-            model="llama3.1-8b-instant",
-            stream=False,
-            temperature=0.5,
-            max_tokens=200,
-            top_p=1,
-            stop=None,
-        )
-        groqChat = chat_completion.choices[0].message.content
-        print(groqChat)
+        sysPrompt = session.get("sysPrompt")
+        print("sysPrompt :", len(sysPrompt))
+        groqChat = llmChat(sysPrompt,question,filtered_chat)
+        print("groqChat :", groqChat)
+        groqKey = groqChat.keys()
+        if "Error" in groqKey:
+            client.close()
+            return {"Success": "Can you please rephrase your question?"}
+        print("groqChat1 :", groqChat)
         chatTime = datetime.utcnow()
-        pushChat = []
         userHistory = {"role": "user", "content": question ,"time": chatTime}
-        assistantHistory = {"role": "assistant", "content": groqChat, "time": chatTime}
-        chatHistory.append({"question": question, "answer": groqChat, "time": chatTime})
-        pushChat.append(userHistory)
-        pushChat.append(assistantHistory)
-        sessionCollection.update_one({"sessionId": sessionId}, {"set": {"updated_at": datetime.utcnow()},"$push": {"chatHistory": pushChat}})
+        assistantHistory = {"role": "assistant", "content": groqChat["Success"], "time": chatTime}
+        sessionCollection.update_one({"sessionId": sessionId}, {
+    "$set": {"updated_at": datetime.utcnow()},
+    "$push": {"chatHistory": {"$each": [userHistory, assistantHistory]}}
+})
         client.close()
-        return {"Success": "Chat session created successfully"}
+        return {"Success": groqChat["Success"]}
 
     except Exception as e:
         print("Unexpected error:", str(e))
@@ -663,7 +648,7 @@ async def end_session(request: Request):
         if session is None:
             client.close()
             raise HTTPException(status_code=404, detail="Session not found")
-        sessionCollection.update_one({"sessionId": sessionId}, {"set": {"sessionStatus": "COMPLETED","endTime": datetime.utcnow()}})
+        sessionCollection.update_one({"sessionId": sessionId}, {"$set": {"sessionStatus": "COMPLETED","endTime": datetime.utcnow()}})
         client.close()
         return {"Success": "Session ended successfully"}
     except Exception as e:
@@ -687,7 +672,7 @@ async def get_session(request: Request):
         db = client["glovera"]
         pageNo = reqData.get("pageNo")
         sessionCollection = db["sessions"]
-        session = sessionCollection.find({"sessionId": sessionId},{"_id": 0}).sort("created_at", pymongo.DESCENDING).skip((pageNo-1)*10).limit(10).to_list(length=None)
+        session = sessionCollection.find({"sessionId": sessionId},{"_id": 0,"sysPrompt":0}).sort("created_at", pymongo.DESCENDING).skip((pageNo-1)*10).limit(10).to_list(length=None)
         if session is None:
             client.close()
             raise HTTPException(status_code=404, detail="Session not found")
@@ -712,7 +697,7 @@ async def get_all_session(request: Request):
         db = client["glovera"]
         pageNo = reqData.get("pageNo")
         sessionCollection = db["sessions"]
-        session = sessionCollection.find({},{"_id": 0,"chatHistory": 0}).sort("created_at", pymongo.DESCENDING).skip((pageNo-1)*10).limit(10).to_list(length=None)
+        session = sessionCollection.find({},{"_id": 0,"chatHistory": 0,"sysPrompt":0}).sort("created_at", pymongo.DESCENDING).skip((pageNo-1)*10).limit(10).to_list(length=None)
         if session is None:
             client.close()
             raise HTTPException(status_code=404, detail="Session not found")
@@ -1003,6 +988,45 @@ async def get_dashboard(request: Request):
         }
         client.close()
         return {"Success":result}
+    except Exception as e:
+        return {"Error": f"Error: {str(e)}"}
+
+
+def llmChat(sysPrompt,question,filtered_chat):
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": sysPrompt,
+                },
+                {
+                    "role": "user",
+                    "content": question,
+                },
+                {
+                    "role": "assistant",
+                    "content": "Here is the Chat History : " + str(filtered_chat),
+                }
+            ],
+            model="llama-3.1-8b-instant",
+            stream=False,
+            temperature=0.1,
+            max_tokens=200,
+            top_p=1,
+            stop=None,
+            response_format={"type": "json_object"}
+        )
+        groqChat = chat_completion.choices[0].message.content
+        loadJson = json.loads(groqChat)
+        groqChat = loadJson
+        grKeys = groqChat.keys()
+        print("llmChat",groqChat)
+        if "response" in grKeys:
+            groqChat = groqChat.get("response")
+        else:
+            groqChat = "Can you please rephrase your question ?"
+        return {"Success":groqChat}
     except Exception as e:
         return {"Error": f"Error: {str(e)}"}
 

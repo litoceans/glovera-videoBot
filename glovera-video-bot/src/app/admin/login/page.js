@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { useAdmin } from '../../context/AdminContext';
+import { useAdmin } from '../context/AdminContext';
 
 export default function AdminLogin() {
   const router = useRouter();

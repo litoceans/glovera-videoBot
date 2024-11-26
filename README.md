@@ -70,7 +70,8 @@ GROQ_API_KEY=your_groq_api_key
 ## Usage
 1. Start the backend server
 2. Launch the frontend application
-3. Access the platform through `http://localhost:3000`
+3. Access the platform through `http://localhost:3000/login`
+4. For admin `http://localhost:3000/admin/login`
 
 ## Features in Detail
 - **Video Bot Interface**: Interactive AI counselor with real-time video rendering
